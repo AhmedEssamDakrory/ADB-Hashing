@@ -114,7 +114,7 @@ int insertChaining(int fd, DataItem item){
     return count;
 }
 
-int searchTheOverflowList(int fd, struct DataItem* item, int *count, int offset){
+int searchTheOverflowList(int fd, struct DataItem* item, int *count, int offset, int& next , int& pre ){
 	o_DataItem data;
 	ssize_t result;
 	while(offset != -1){
@@ -123,14 +123,17 @@ int searchTheOverflowList(int fd, struct DataItem* item, int *count, int offset)
 			perror("error reading file");
 			return -1;
 		} else if(data.valid == 1 && data.key == item->key){
+			item->data = data.data;
+			next = data.pointer;
 			return offset*sizeof(o_DataItem)+MAIN_FILE_SIZE;
 		}
+		pre = offset*sizeof(o_DataItem)+MAIN_FILE_SIZE+3*sizeof(int);
 		offset = data.pointer;
 	}
 	return -1;
 }
 
-int searchChaining(int fd, struct DataItem* item, int *count){
+int searchChaining(int fd, struct DataItem* item, int *count, int& next, int& pre){
 	int hashIndex = hashCode_(item->key);
 	int offset = hashIndex*sizeof(MainBucket);
 	DataItem data;
@@ -143,6 +146,7 @@ int searchChaining(int fd, struct DataItem* item, int *count){
 			perror("error reading file");
 			return -1;
 		} else if(data.valid == 1 && data.key == item->key){
+			item -> data = data.data;
 			return offset;
 		}
 		offset += sizeof(DataItem);
@@ -155,7 +159,8 @@ int searchChaining(int fd, struct DataItem* item, int *count){
 	} else if(pointer == -1){
 		return -1; // not found;
 	} else{
-		offset = searchTheOverflowList(fd, item, count, pointer);
+		pre = offset;
+		offset = searchTheOverflowList(fd, item, count, pointer, next, pre);
 		if(offset == -1) return -1;
 		return offset;
 	}
@@ -206,6 +211,32 @@ void initializeAllPointers(int fd){
     for(; offset < FILE_SIZE_OV; offset += sizeof(o_DataItem)){
     	ssize_t result = pwrite(fd, &p, sizeof(int), offset-sizeof(int));
     }
+}
+
+int deleteChaining(int fd, struct DataItem* item, int *count){
+	int next; int pre;
+	int offset = searchChaining(fd, item, count, next, pre);
+	if(offset == -1) return -1;
+	else if(offset < MAIN_FILE_SIZE){
+		int result = deleteOffset(fd, offset);
+		if(result <= 0){
+			perror("error!");
+			return -1;
+		}
+	} else {
+		 ssize_t result = pwrite(fd, &next, sizeof(int), pre);
+		 o_DataItem dummyData;
+		 dummyData.data = 0;
+		 dummyData.pointer = -1;
+		 dummyData.valid = 0;
+		 dummyData.key = -1;
+		 result = pwrite(fd, &dummyData, sizeof(o_DataItem), offset);
+		 if(result <= 0){
+			 perror("error!");
+			 return -1;
+		 }
+	}
+	return 1;
 }
 
 
