@@ -83,7 +83,7 @@ int insertItem(int fd,DataItem* item){
 
     } 
 
-   return 0;
+   return count;
 }
 
 

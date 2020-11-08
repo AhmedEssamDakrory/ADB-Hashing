@@ -41,7 +41,7 @@ int createFile(int size, char *);
 
 //check the openAddressing File
 int deleteItem(int key);
-int insertItem(int fd,DataItem item);
+int insertItem(int fd,DataItem* item);
 int DisplayFile(int fd);
 int deleteOffset(int filehandle, int Offset);
 int searchItem(int filehandle,struct DataItem* item,int *count);

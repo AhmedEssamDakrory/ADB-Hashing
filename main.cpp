@@ -95,11 +95,11 @@ int main(){
     Output: print statement with the no. of comparisons
 */
 void insert(int key,int data){
-     struct DataItem item ;
-     item.data = data;
-     item.key = key;
-     item.valid = 1;
-     int result= insertItem(filehandle, &item);  //TODO: implement this function in openAddressing.cpp
+     DataItem* item ;
+     item->data = data;
+     item->key = key;
+     item->valid = 1;
+     int result= insertItem(filehandle, item);  //TODO: implement this function in openAddressing.cpp
      printf("Insert: No. of searched records:%d\n",abs(result));
 }
 
