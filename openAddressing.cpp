@@ -1,4 +1,4 @@
-#include 'readfile.h'
+#include "readfile.h"
 
 /* Hash function to choose bucket
  * Input: key used to calculate the hash
@@ -31,7 +31,7 @@ int hashCode(int key){
  * 	pwrite() writes up to count bytes from the buffer starting  at  buf  to
        the  file  descriptor  fd  at  offset  offset.
  */
-int insertItem(int fd,DataItem item){
+int insertItem(int fd,DataItem* item){
    
 
 	int valid;   

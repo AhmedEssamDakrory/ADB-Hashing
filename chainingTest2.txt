@@ -1,0 +1,36 @@
+35
+insert 1 20
+insert 2 30
+insert 11 50
+insert 21 70
+insert 22 80
+insert 12 44
+insert 31 31
+insert 41 41
+insert 32 32
+insert 3 3
+insert 13 13
+insert 23 23
+insert 42 42
+insert 51 51
+insert 4 4
+insert 14 14
+search 1
+search 2
+search 11
+search 21
+search 22
+search 12
+search 31
+search 41
+search 32
+search 15
+search 23
+search 51
+search 14
+delete 1
+delete 31
+delete 21
+delete 41
+delete 13
+delete 14

@@ -22,6 +22,16 @@ int hashCode_(int key){
    return key % MBUCKETS;
 }
 
+int deleteOffset(int fd, int Offset)
+{
+	struct DataItem dummyItem;
+	dummyItem.valid = 0;
+	dummyItem.key = -1;
+	dummyItem.data = 0;
+	int result = pwrite(fd,&dummyItem,sizeof(DataItem), Offset);
+	return result;
+}
+
 int getFirstUnsedLocation(int fd, int& count){
     int valid;
     int offset = MBUCKETS*sizeof(MainBucket);
@@ -78,7 +88,6 @@ int insertChaining(int fd, DataItem item){
         }
         offset += sizeof(DataItem);
     }
-    ++count;
     int next = getFirstUnsedLocation(fd, count);
     if(next < 0){
         return -1;
@@ -118,6 +127,7 @@ int searchTheOverflowList(int fd, struct DataItem* item, int *count, int offset,
 	o_DataItem data;
 	ssize_t result;
 	while(offset != -1){
+        ++(*count);
 		result = pread(fd, &data, sizeof(o_DataItem), offset*sizeof(o_DataItem)+MAIN_FILE_SIZE);
 		if(result <= 0){
 			perror("error reading file");
@@ -151,7 +161,6 @@ int searchChaining(int fd, struct DataItem* item, int *count, int& next, int& pr
 		}
 		offset += sizeof(DataItem);
 	}
-	++(*count);
 	result = pread(fd, &pointer, sizeof(int), offset);
 	if(result <= 0){
 		perror("error reading file");

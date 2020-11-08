@@ -1,7 +1,7 @@
 #include<iostream>
 using namespace std;
-#include "readfile.h"
 #include "chaining.h"
+#include<fstream>
 
 int filehandle;   //handler for the database file
 
@@ -51,29 +51,25 @@ void deleteItem_(int key){
 int main(){
 	filehandle = createFile(FILE_SIZE_OV,"chaining.txt");
 	initializeAllPointers(filehandle);
-	insert(1, 20);
-	insert(2,30);
-	insert(11, 50);
-	insert(21, 70);
-	insert(22,80);
-	insert(12, 44);
-	insert(31, 31);
-	insert(41, 41);
-	insert(32, 32);
-	display(filehandle);
-	search(1);
-	search(2);
-	search(11);
-	search(21);
-	search(22);
-	search(12);
-	search(31);
-	search(41);
-	search(32);
-	search(15);
-	deleteItem_(1);
-	deleteItem_(31);
-	deleteItem_(21);
-	display(filehandle);
+	printf("Enter the test case file name....\n");
+	string fileName; cin>>fileName;
+	ifstream cin(fileName);
+	int n; cin>>n;
+	for(int i = 0 ; i < n; ++i){
+		string op; cin>>op;
+		int key, data;
+		if(op == "insert"){
+			cin>>key>>data;	
+			insert(key, data);		
+		} 
+		else if(op == "search") {
+			cin>>key;
+			search(key);
+		}
+		else{
+			cin>>key;
+			deleteItem_(key);			
+		} 
+	}
 }
 
