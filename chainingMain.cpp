@@ -71,5 +71,6 @@ int main(){
 			deleteItem_(key);			
 		} 
 	}
+	close(filehandle);
 }
 
