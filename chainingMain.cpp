@@ -25,9 +25,9 @@ void search(int key){
 		printf("Not found!\n");
 	} else{
 		if(result < MAIN_FILE_SIZE){
-			printf("found in the main buckets at index %d\n", result/sizeof(MainBucket));
+			printf("DataItem: key %d, data %d found in the main buckets at index %d\n",key, item.data, result/sizeof(MainBucket));
 		} else{
-			printf("found in the overflow buckets at record number %d\n", (result-MAIN_FILE_SIZE)/sizeof(o_DataItem));
+			printf("DataItem: key %d, data %d found in the overflow buckets at record number %d\n",key, item.data, (result-MAIN_FILE_SIZE)/sizeof(o_DataItem));
 		}
 		printf("Search: No. of searched records:%d\n",count);
 	}
@@ -42,7 +42,7 @@ void deleteItem_(int key){
 	if(result == -1){
 		printf("not found!");
 	} else{
-		printf("Deleted successfully");
+		printf("DataItem: key %d, data %d Deleted successfully", key, item.data);
 		printf("Delete: No. of searched records:%d\n",count);
 	}
 }
