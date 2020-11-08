@@ -6,3 +6,4 @@ Implementing different static hashing techniques.
 "
 - Then run using the command "./run".
 - You will be asked to enter the filename of the testcase you want to run (you can find an example in the file "chainingTest1.txt") 
+
