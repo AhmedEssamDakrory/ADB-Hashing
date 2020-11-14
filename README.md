@@ -1,5 +1,11 @@
 # ADB-Hashing
 Implementing different static hashing techniques.
+
+## Team:
+Ahmed Essam Eldeen \
+Ahmed Mohamed Zakaria \
+Abdullah Ezzat \
+
 ## Usage on linux
 ### To compile them in one go:
 1- use the command "make" in the main directory \
