@@ -11,7 +11,7 @@ int hashFn1(int key){
 }
 
 int hashFn2(int key){
-    return (key % 101) % MBUCKETS;
+    return (key % 13) % MBUCKETS;
 }
 
 
@@ -43,7 +43,7 @@ int insertItemMultiHashing(int fd, DataItem item){
     int offset = bucket*sizeof(Bucket);
     for(int i = offset; i<offset+sizeof(Bucket); i+=sizeof(DataItem)) {
         count++;
-        ssize_t r = pread(fd, &d, size(DataItem), i);
+        ssize_t r = pread(fd, &d, sizeof(DataItem), i);
         if(r <= 0){
             perror("Error with pread");
             return -1;
@@ -54,6 +54,7 @@ int insertItemMultiHashing(int fd, DataItem item){
                 perror("Error with pwrite");
                 return -1;
             }
+            return count;
         }
     }
 
@@ -62,7 +63,7 @@ int insertItemMultiHashing(int fd, DataItem item){
     offset = bucket*sizeof(Bucket);
     for(int i = offset; i<offset+sizeof(Bucket); i+=sizeof(DataItem)) {
         count++;
-        ssize_t r = pread(fd, &d, size(DataItem), i);
+        ssize_t r = pread(fd, &d, sizeof(DataItem), i);
         if(r <= 0){
             perror("Error with pread");
             return -1;
@@ -73,15 +74,13 @@ int insertItemMultiHashing(int fd, DataItem item){
                 perror("Error with pwrite");
                 return -1;
             }
+            return count;
         }
     }
     
     // no space found in bucket again... applying open addressing...
-
-    //TODO: use open addressing
-    // int c = insertItem(fd, item);
-    // count += c;
-
+    count += insertItem(fd, item);
+    
     return count;
 }
 
@@ -100,7 +99,7 @@ int insertItemMultiHashing(int fd, DataItem item){
  * Output: the in the file where we found the item
  */
 
-int searchItemMutliHashing(int fd, struct DataItem* item, int *count)
+int searchItemMultiHashing(int fd, struct DataItem* item, int *count)
 {
 
 	//Definitions
