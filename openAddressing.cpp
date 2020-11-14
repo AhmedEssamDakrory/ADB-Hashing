@@ -1,4 +1,5 @@
 #include "readfile.h"
+#define OVERFLOW_BUCKETS 10
 
 /* Hash function to choose bucket
  * Input: key used to calculate the hash
@@ -31,21 +32,21 @@ int hashCode(int key){
  * 	pwrite() writes up to count bytes from the buffer starting  at  buf  to
        the  file  descriptor  fd  at  offset  offset.
  */
-int insertItem(int fd,DataItem* item){
-   
+int insertItem(int fd,DataItem item){
 
-	int valid;   
-	int count = 0;				
+
+	int valid;
+	int count = 0;
 	int rewind = 0;			//A flag to start searching from the first bucket
-	int hashIndex = hashCode(item->key);  				//calculate the Bucket index
+	int hashIndex = hashCode(item.key);  				//calculate the Bucket index
 	int startingOffset = hashIndex*sizeof(Bucket);		//calculate the starting address of the bucket
 	int Offset = startingOffset;						//Offset variable which we will use to iterate on the db
-
+	ssize_t result_r;
 	//Main Loop
 	RESEEK:
 
-	ssize_t result_r = pread(fd,&valid,sizeof(int), Offset);
-	
+	result_r = pread(fd, &valid, sizeof(int), Offset);
+
 	//one record accessed
 	count++;
 
@@ -54,12 +55,27 @@ int insertItem(int fd,DataItem* item){
 	{ 	 // perror("some error occurred in pread");
 		  return -1;
     }
-	else if(valid ==0){
-		
+    else if (valid == 1)
+    {
+        Offset +=sizeof(DataItem);
+        if(Offset >= FILESIZE && rewind ==0 )
+        {
+        	rewind = 1;
+        	Offset = 0;
+       		goto RESEEK;
+       	} else
+       	    if(rewind == 1 && Offset >= startingOffset) {
+       			return -1; //no empty spaces
+       	}
+       	goto RESEEK;
+
+      }
+	else{
+
 		ssize_t result_w = pwrite(fd,&item,sizeof(DataItem), Offset);
-		
-		if(result_r <= 0) 
-		{ 	 
+
+		if(result_w <= 0)
+		{
 			return -1;
    		}
 		else
@@ -67,21 +83,7 @@ int insertItem(int fd,DataItem* item){
 			return count;
 		}
 	}
-    else if (valid == 1) 
-	{
-    	Offset +=sizeof(DataItem);
-    	if(Offset >= FILESIZE && rewind ==0 )
-    	{ 
-    		rewind = 1;
-    		Offset = 0;
-    		goto RESEEK;
-    	} else
-    	    if(rewind == 1 && Offset >= startingOffset) {
-    			return -1; //no empty spaces
-    	}
-    	goto RESEEK;
 
-    } 
 
    return count;
 }
@@ -188,4 +190,3 @@ int deleteOffset(int fd, int Offset)
 	int result = pwrite(fd,&dummyItem,sizeof(DataItem), Offset);
 	return result;
 }
-
