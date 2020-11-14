@@ -11,6 +11,7 @@ struct o_DataItem {
 
 struct MainBucket{
     struct DataItem  dataItem[RECORDSPERBUCKET];
+    int tail;
     int pointer;
 };
 
@@ -88,6 +89,7 @@ int insertChaining(int fd, DataItem item){
         }
         offset += sizeof(DataItem);
     }
+    offset += sizeof(int);
     int next = getFirstUnsedLocation(fd, count);
     if(next < 0){
         return -1;
@@ -103,9 +105,9 @@ int insertChaining(int fd, DataItem item){
             return -1;
         }
     } else{
-        offset = getEndOfTheChain(fd, count, pointer);
-        if(offset < 0) return -1;
-        ssize_t result = pwrite(fd, &next, sizeof(int), offset+3*sizeof(int));
+        int endChainOffset;
+        result = pread(fd, &endChainOffset, sizeof(int), offset-sizeof(int));
+        ssize_t result = pwrite(fd, &next, sizeof(int), endChainOffset*sizeof(o_DataItem)+MAIN_FILE_SIZE+3*sizeof(int));
         if(result <= 0){
             perror("some error occurred in pwrite");
             return -1;
@@ -120,6 +122,8 @@ int insertChaining(int fd, DataItem item){
         perror("some error occurred in pwrite");
         return -1;
     }
+    // update end of the chain
+    result = pwrite(fd, &next, sizeof(int), offset-sizeof(int));
     return count;
 }
 
@@ -161,6 +165,7 @@ int searchChaining(int fd, struct DataItem* item, int *count, int& next, int& pr
 		}
 		offset += sizeof(DataItem);
 	}
+    offset += sizeof(int);
 	result = pread(fd, &pointer, sizeof(int), offset);
 	if(result <= 0){
 		perror("error reading file");
@@ -173,6 +178,71 @@ int searchChaining(int fd, struct DataItem* item, int *count, int& next, int& pr
 		if(offset == -1) return -1;
 		return offset;
 	}
+}
+
+
+
+void initializeAllPointers(int fd){
+    int offset = sizeof(MainBucket);
+    int p = -1;
+    for(int i = 0 ; i < MBUCKETS; ++i){
+        ssize_t result = pwrite(fd, &p, sizeof(int), offset-sizeof(int));
+        offset += sizeof(MainBucket);
+    }
+    offset = MAIN_FILE_SIZE+sizeof(o_DataItem);
+    for(; offset < FILE_SIZE_OV; offset += sizeof(o_DataItem)){
+    	ssize_t result = pwrite(fd, &p, sizeof(int), offset-sizeof(int));
+    }
+}
+
+int deleteOverflowItem(int fd, int offset){
+    o_DataItem dummyData;
+    dummyData.data = 0;
+    dummyData.pointer = -1;
+    dummyData.valid = 0;
+    dummyData.key = -1;
+    ssize_t result = pwrite(fd, &dummyData, sizeof(o_DataItem), offset);
+    return result;
+}
+
+void shiftOverflowList(int fd, int key, int offset, int* count){
+    int hashIndex = hashCode_(key);
+    int pointerOffset = (hashIndex+1)*sizeof(MainBucket)-sizeof(int);
+    int pointer;
+    ssize_t result = pread(fd, &pointer, sizeof(int), pointerOffset);
+    if(pointer != -1){
+        int firstOverflowOffset = pointer*sizeof(o_DataItem)+MAIN_FILE_SIZE;
+        o_DataItem data;
+        DataItem item; 
+        result = pread(fd, &data, sizeof(o_DataItem), firstOverflowOffset);
+        ++(*count);
+        item.data = data.data; item.key = data.key; item.valid = data.valid;
+        result = pwrite(fd, &item, sizeof(DataItem), offset);
+        result = pwrite(fd, &(data.pointer), sizeof(int), pointerOffset);
+        result = deleteOverflowItem(fd, firstOverflowOffset);
+    }
+}
+
+int deleteChaining(int fd, struct DataItem* item, int *count){
+	int next; int pre;
+	int offset = searchChaining(fd, item, count, next, pre);
+	if(offset == -1) return -1;
+	else if(offset < MAIN_FILE_SIZE){
+		int result = deleteOffset(fd, offset);
+		if(result <= 0){
+			perror("error!");
+			return -1;
+		}
+        shiftOverflowList(fd, item->key, offset, count);
+	} else {
+		 ssize_t result = pwrite(fd, &next, sizeof(int), pre);
+		 result = deleteOverflowItem(fd, offset);
+		 if(result <= 0){
+			 perror("error!");
+			 return -1;
+		 }
+	}
+	return 1;
 }
 
 void display(int fd){
@@ -193,14 +263,15 @@ void display(int fd){
             }
             offset += sizeof(DataItem);
         }
-       result = pread(fd, &pointer, sizeof(int), offset);
-       if(result <= 0){
-           perror("error!");
-           return ;
-       } else{
-           printf("EndOfBucket: %d\n", pointer);
-       }
-       offset += sizeof(int);
+        offset += sizeof(int);
+        result = pread(fd, &pointer, sizeof(int), offset);
+        if(result <= 0){
+            perror("error!");
+            return ;
+        } else{
+            printf("EndOfBucket: %d\n", pointer);
+        }
+        offset += sizeof(int);
     }
     printf("Overflow Buckets...");
     for( ;offset < FILE_SIZE_OV; offset += sizeof(o_DataItem)){
@@ -208,45 +279,5 @@ void display(int fd){
     	 printf("Data Item : %d %d %d\n", data2.key, data2.data, data2.pointer);
     }
 }
-
-void initializeAllPointers(int fd){
-    int offset = sizeof(MainBucket);
-    int p = -1;
-    for(int i = 0 ; i < MBUCKETS; ++i){
-        ssize_t result = pwrite(fd, &p, sizeof(int), offset-sizeof(int));
-        offset += sizeof(MainBucket);
-    }
-    offset = MAIN_FILE_SIZE+sizeof(o_DataItem);
-    for(; offset < FILE_SIZE_OV; offset += sizeof(o_DataItem)){
-    	ssize_t result = pwrite(fd, &p, sizeof(int), offset-sizeof(int));
-    }
-}
-
-int deleteChaining(int fd, struct DataItem* item, int *count){
-	int next; int pre;
-	int offset = searchChaining(fd, item, count, next, pre);
-	if(offset == -1) return -1;
-	else if(offset < MAIN_FILE_SIZE){
-		int result = deleteOffset(fd, offset);
-		if(result <= 0){
-			perror("error!");
-			return -1;
-		}
-	} else {
-		 ssize_t result = pwrite(fd, &next, sizeof(int), pre);
-		 o_DataItem dummyData;
-		 dummyData.data = 0;
-		 dummyData.pointer = -1;
-		 dummyData.valid = 0;
-		 dummyData.key = -1;
-		 result = pwrite(fd, &dummyData, sizeof(o_DataItem), offset);
-		 if(result <= 0){
-			 perror("error!");
-			 return -1;
-		 }
-	}
-	return 1;
-}
-
 
 

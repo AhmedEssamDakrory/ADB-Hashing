@@ -42,7 +42,7 @@ void deleteItem_(int key){
 	if(result == -1){
 		printf("not found!");
 	} else{
-		printf("DataItem: key %d, data %d Deleted successfully", key, item.data);
+		printf("DataItem: key %d, data %d Deleted successfully\n", key, item.data);
 		printf("Delete: No. of searched records:%d\n",count);
 	}
 }
@@ -68,7 +68,8 @@ int main(){
 		}
 		else{
 			cin>>key;
-			deleteItem_(key);			
+			deleteItem_(key);
+			display(filehandle);			
 		} 
 	}
 	close(filehandle);
